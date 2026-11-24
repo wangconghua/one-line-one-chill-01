@@ -13,33 +13,81 @@ MAX_CHARS = 200
 TERMINATORS = ".!?"
 
 
+def check_is_text(text):
+    """Return a problem if the entry is not a string, else None."""
+    if not isinstance(text, str):
+        return "entry is not text"
+    return None
+
+
+def check_nonempty(text):
+    """Return problems if the entry is empty or only whitespace."""
+    problems = []
+    if not text:
+        problems.append("entry is empty")
+    if not text.strip():
+        problems.append("entry is only whitespace")
+    return problems
+
+
+def check_length(text):
+    """Return a problem if the entry exceeds the 200-character limit."""
+    if len(text) > MAX_CHARS:
+        return "entry is %d characters, over the 200 limit" % len(text)
+    return None
+
+
+def check_single_line(text):
+    """Return a problem if the entry spans more than one line."""
+    if "\n" in text or "\r" in text:
+        return "entry must be a single line"
+    return None
+
+
+def check_single_sentence(text):
+    """Return a problem unless the entry is exactly one sentence ending in '.'."""
+    marks = [c for c in text if c in TERMINATORS]
+    if len(marks) != 1 or not text.endswith("."):
+        return "entry must be exactly one sentence ending in '.'"
+    return None
+
+
+def check_no_edge_whitespace(text):
+    """Return a problem if the entry has leading or trailing whitespace."""
+    if text != text.strip():
+        return "entry has leading or trailing whitespace"
+    return None
+
+
+def check_utf8(text):
+    """Return a problem if the entry is not encodable as UTF-8."""
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError:
+        return "entry is not encodable as UTF-8"
+    return None
+
+
 def validate(text):
     """Check the entry against the competition gate and the task rules.
 
     Returns a list of problems; empty means the text is valid.
     """
+    problem = check_is_text(text)
+    if problem is not None:
+        return [problem]
     problems = []
-    if not isinstance(text, str):
-        problems.append("entry is not text")
-        return problems
-    if not text:
-        problems.append("entry is empty")
-    if not text.strip():
-        problems.append("entry is only whitespace")
-    if len(text) > MAX_CHARS:
-        problems.append("entry is %d characters, over the 200 limit" % len(text))
-    if "\n" in text or "\r" in text:
-        problems.append("entry must be a single line")
-    # One sentence: exactly one sentence-terminating mark, at the end.
-    marks = [c for c in text if c in TERMINATORS]
-    if len(marks) != 1 or not text.endswith("."):
-        problems.append("entry must be exactly one sentence ending in '.'")
-    if text != text.strip():
-        problems.append("entry has leading or trailing whitespace")
-    try:
-        text.encode("utf-8")
-    except UnicodeEncodeError:
-        problems.append("entry is not encodable as UTF-8")
+    problems.extend(check_nonempty(text))
+    for check in (
+        check_length,
+        check_single_line,
+        check_single_sentence,
+        check_no_edge_whitespace,
+        check_utf8,
+    ):
+        problem = check(text)
+        if problem is not None:
+            problems.append(problem)
     return problems
 
 
